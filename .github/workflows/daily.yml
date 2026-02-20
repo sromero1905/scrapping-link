@@ -1,0 +1,216 @@
+name: LinkedIn Content Generation
+
+on:
+  schedule:
+    # Ejecutar todos los días a las 10:00 UTC (7:00 AM Argentina)
+    - cron: '0 10 * * *'
+  workflow_dispatch: # Permite ejecución manual
+    inputs:
+      debug:
+        description: 'Debug mode'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  generate-content:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install Playwright browsers
+      run: npx playwright install chromium --with-deps
+      
+    - name: Verify environment
+      run: |
+        echo "Node version: $(node --version)"
+        echo "NPM version: $(npm --version)"
+        echo "Current time: $(date)"
+        echo "Timezone: $(timedatectl show --property=Timezone --value 2>/dev/null || echo 'UTC')"
+        
+    - name: Run content generation (with retry)
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        DEBUG: ${{ github.event.inputs.debug || 'false' }}
+      run: |
+        echo "🚀 Starting LinkedIn content generation..."
+        echo "Debug mode: $DEBUG"
+        
+        # Función de retry con exponential backoff
+        retry_command() {
+          local max_attempts=2
+          local delay=30
+          local attempt=1
+          
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts..."
+            
+            if npm start; then
+              echo "✅ Success on attempt $attempt"
+              return 0
+            else
+              echo "❌ Attempt $attempt failed"
+              if [ $attempt -lt $max_attempts ]; then
+                echo "⏳ Waiting ${delay}s before retry..."
+                sleep $delay
+                delay=$((delay * 2))  # Exponential backoff
+              fi
+            fi
+            
+            attempt=$((attempt + 1))
+          done
+          
+          echo "💥 All attempts failed"
+          return 1
+        }
+        
+        # Ejecutar con retry
+        if retry_command; then
+          echo "GENERATION_STATUS=success" >> $GITHUB_ENV
+        else
+          echo "GENERATION_STATUS=failed" >> $GITHUB_ENV
+          exit 1
+        fi
+        
+    - name: Upload fallback files as artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: linkedin-content-${{ github.run_number }}
+        path: |
+          fallback/*.txt
+          *.log
+        retention-days: 30
+        if-no-files-found: ignore
+        
+    - name: Create summary report
+      if: always()
+      run: |
+        echo "# 📊 LinkedIn Content Generation Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Date:** $(date '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+        echo "**Run Number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Status:** ${{ env.GENERATION_STATUS || 'unknown' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f "execution.log" ]; then
+          echo "## 📝 Execution Log" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -20 execution.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ -d "fallback" ] && [ "$(ls -A fallback)" ]; then
+          echo "## 📁 Generated Files" >> $GITHUB_STEP_SUMMARY
+          echo "Fallback files were created and uploaded as artifacts:" >> $GITHUB_STEP_SUMMARY
+          for file in fallback/*; do
+            if [ -f "$file" ]; then
+              echo "- $(basename "$file")" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+        fi
+        
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "🚨 LinkedIn content generation failed!"
+        echo "Check the logs above for details."
+        echo "Fallback files may be available in artifacts if generation partially succeeded."
+        
+        # Log para debugging
+        echo "=== DEBUGGING INFO ===" 
+        echo "Working directory: $(pwd)"
+        echo "Files in directory:"
+        ls -la
+        if [ -d "fallback" ]; then
+          echo "Fallback directory contents:"
+          ls -la fallback/
+        fi
+        
+    - name: Cleanup
+      if: always()
+      run: |
+        # Limpiar archivos temporales pero mantener logs para artifacts
+        find . -name "*.tmp" -delete 2>/dev/null || true
+        find . -name "core.*" -delete 2>/dev/null || true
+        
+        echo "🧹 Cleanup completed"
+
+  # Job adicional para estadísticas semanales (solo los domingos)
+  weekly-stats:
+    if: github.event.schedule && format('{0}', github.event.schedule) == '0 10 * * 0'
+    runs-on: ubuntu-latest
+    needs: generate-content
+    
+    steps:
+    - name: Generate weekly statistics
+      run: |
+        echo "📈 Weekly statistics would be generated here"
+        echo "This job runs only on Sundays to provide weekly summaries"
+        
+        # Aquí se podría implementar lógica para:
+        # - Revisar el historial de la semana
+        # - Generar estadísticas de engagement
+        # - Crear reportes semanales
+        
+  # Job de health check para monitorear el sistema
+  health-check:
+    if: always()
+    needs: generate-content
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: System health check
+      run: |
+        echo "🏥 Health Check Report"
+        echo "======================"
+        echo "Workflow: ${{ github.workflow }}"
+        echo "Run ID: ${{ github.run_id }}"
+        echo "Run Number: ${{ github.run_number }}"
+        echo "Actor: ${{ github.actor }}"
+        echo "Event: ${{ github.event_name }}"
+        echo "Ref: ${{ github.ref }}"
+        echo "SHA: ${{ github.sha }}"
+        echo "Date: $(date)"
+        echo ""
+        
+        if [ "${{ needs.generate-content.result }}" == "success" ]; then
+          echo "✅ Content generation: SUCCESS"
+        else
+          echo "❌ Content generation: ${{ needs.generate-content.result }}"
+        fi
+        
+        # Verificar que los secrets estén configurados (sin mostrar valores)
+        if [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+          echo "✅ ANTHROPIC_API_KEY: Configured"
+        else
+          echo "❌ ANTHROPIC_API_KEY: Missing"
+        fi
+        
+        if [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
+          echo "✅ GITHUB_TOKEN: Configured"
+        else
+          echo "❌ GITHUB_TOKEN: Missing"
+        fi
+        
+    - name: Set job status
+      run: |
+        if [ "${{ needs.generate-content.result }}" == "success" ]; then
+          echo "Overall status: SUCCESS ✅"
+        else
+          echo "Overall status: FAILURE ❌"
+          exit 1
+        fi

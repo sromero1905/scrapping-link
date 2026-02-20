@@ -43,7 +43,7 @@ jobs:
     - name: Run content generation (with retry)
       env:
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         DEBUG: ${{ github.event.inputs.debug || 'false' }}
       run: |
         echo "🚀 Starting LinkedIn content generation..."
@@ -200,10 +200,10 @@ jobs:
           echo "❌ ANTHROPIC_API_KEY: Missing"
         fi
         
-        if [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
-          echo "✅ GITHUB_TOKEN: Configured"
+        if [ -n "${{ secrets.GH_TOKEN }}" ]; then
+          echo "✅ GH_TOKEN: Configured"
         else
-          echo "❌ GITHUB_TOKEN: Missing"
+          echo "❌ GH_TOKEN: Missing"
         fi
         
     - name: Set job status

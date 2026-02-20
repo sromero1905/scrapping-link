@@ -4,7 +4,7 @@ const SITES_CONFIG = {
   'techcrunch.com': {
     name: 'TechCrunch',
     baseUrl: 'https://techcrunch.com',
-    articleSelector: 'article h2 a, .post-block__title a, [data-module="PostTitle"] a, h2.post-block__title a, .post-block a',
+    articleSelector: 'h3 a, h2 a, a[href*="/2026/"], a[href*="/2025/"]',
     titleSelector: 'h1, .article__title, .wp-block-post-title',
     contentSelector: '.article-content, .entry-content, .wp-block-post-content, [data-module="ArticleBody"]',
     maxAge: 24 // hours
@@ -36,35 +36,27 @@ const SITES_CONFIG = {
   'technologyreview.com': {
     name: 'MIT Technology Review',
     baseUrl: 'https://www.technologyreview.com',
-    articleSelector: '.teaserItem__title a, .contentItem__title a, article h2 a, h3 a',
+    articleSelector: 'a[href*="/2026/"], a[href*="/2025/"], h2 a, h3 a, .story-link a',
     titleSelector: 'h1',
-    contentSelector: '.article__body, .content__body',
+    contentSelector: 'main p, section p, .article__body, .content__body',
     maxAge: 24
   },
   'venturebeat.com': {
     name: 'VentureBeat',
     baseUrl: 'https://venturebeat.com',
     articleSelector: '.ArticleListing__title-link, h3 a, .post-title a, article h2 a',
-    titleSelector: 'h1, .article-title',
-    contentSelector: '.article-content, .the-content',
+    titleSelector: 'h1',
+    contentSelector: 'article p, .article-content, .the-content',
     maxAge: 24
   },
   'news.ycombinator.com': {
     name: 'Hacker News',
     baseUrl: 'https://news.ycombinator.com',
-    articleSelector: '.athing .titleline > a, .storylink',
+    articleSelector: '.athing .titleline > a, .athing .title a',
     titleSelector: '',
     contentSelector: '',
     maxAge: 24,
     isAggregator: true
-  },
-  'producthunt.com': {
-    name: 'Product Hunt',
-    baseUrl: 'https://www.producthunt.com',
-    articleSelector: '[data-test="post-name"] a, .styles_title__xkfDT a, h3 a, .product-item a',
-    titleSelector: 'h1, [data-test="post-name"]',
-    contentSelector: '[data-test="post-description"], .styles_tagline__WuKP5',
-    maxAge: 24
   },
   'huggingface.co': {
     name: 'Hugging Face Blog',
@@ -76,8 +68,8 @@ const SITES_CONFIG = {
   },
   'openai.com': {
     name: 'OpenAI Blog',
-    baseUrl: 'https://openai.com/blog',
-    articleSelector: 'h3 a, .f-display-4 a, article h2 a, .blog-post a',
+    baseUrl: 'https://openai.com/index/',
+    articleSelector: 'a[href*="/index/"], h3 a, h2 a, article a',
     titleSelector: 'h1',
     contentSelector: '.prose, .blog-content',
     maxAge: 24
@@ -85,41 +77,65 @@ const SITES_CONFIG = {
   'anthropic.com': {
     name: 'Anthropic News',
     baseUrl: 'https://www.anthropic.com/news',
-    articleSelector: 'h2 a, .news-item h3 a, article h2 a, .post-link a',
+    articleSelector: 'a[href*="/news/"], h2 a, h3 a, .post-link a',
     titleSelector: 'h1',
     contentSelector: '.prose, .news-content',
     maxAge: 24
   },
   'deepmind.google': {
     name: 'DeepMind Blog',
-    baseUrl: 'https://deepmind.google/discover/blog',
-    articleSelector: 'h2 a, .blog-card h3 a, article h3 a, .post-title a',
+    baseUrl: 'https://deepmind.google/discover/blog/',
+    articleSelector: 'article a, h2 a, h3 a, .blog-card a',
     titleSelector: 'h1',
     contentSelector: '.article-content, .blog-content',
     maxAge: 24
   },
-  'therundown.ai': {
-    name: 'The Rundown AI',
-    baseUrl: 'https://www.therundown.ai',
-    articleSelector: 'h2 a, .post-title a, article h3 a, .newsletter-item a',
+  'ai.meta.com': {
+    name: 'Meta AI Blog',
+    baseUrl: 'https://ai.meta.com/blog',
+    articleSelector: 'a[href*="/blog/"]',
     titleSelector: 'h1',
-    contentSelector: '.post-content, .article-content',
+    contentSelector: '.prose, .article-content, main p',
     maxAge: 24
   },
-  'bensbites.com': {
-    name: 'Ben\'s Bites',
-    baseUrl: 'https://bensbites.com',
-    articleSelector: 'h2 a, .post-title a, article h3 a, .newsletter-link',
+  'stability.ai': {
+    name: 'Stability AI Blog',
+    baseUrl: 'https://stability.ai/news',
+    articleSelector: 'a[href*="/news/"]',
     titleSelector: 'h1',
-    contentSelector: '.post-content, .article-content',
+    contentSelector: '.prose, .article-content, main p',
     maxAge: 24
   },
-  'tldr.tech': {
-    name: 'TLDR Tech',
-    baseUrl: 'https://tldr.tech',
-    articleSelector: 'h2 a, .newsletter-link, article h3 a, .post-item a',
+  'mistral.ai': {
+    name: 'Mistral AI Blog',
+    baseUrl: 'https://mistral.ai/news',
+    articleSelector: 'a[href*="/news/"]',
     titleSelector: 'h1',
-    contentSelector: '.newsletter-content, .article-content',
+    contentSelector: '.prose, .article-content, main p',
+    maxAge: 24
+  },
+  'cohere.com': {
+    name: 'Cohere Blog',
+    baseUrl: 'https://cohere.com/blog',
+    articleSelector: 'a[href*="/blog/"]',
+    titleSelector: 'h1',
+    contentSelector: '.prose, .article-content, main p',
+    maxAge: 24
+  },
+  'scale.com': {
+    name: 'Scale AI Blog',
+    baseUrl: 'https://scale.com/blog',
+    articleSelector: 'a[href*="/blog/"]',
+    titleSelector: 'h1',
+    contentSelector: '.prose, .article-content, main p',
+    maxAge: 24
+  },
+  'blog.perplexity.ai': {
+    name: 'Perplexity AI Blog',
+    baseUrl: 'https://blog.perplexity.ai',
+    articleSelector: 'a[href*="/blog/"], h2 a, h3 a',
+    titleSelector: 'h1',
+    contentSelector: '.prose, .article-content, main p',
     maxAge: 24
   }
 };

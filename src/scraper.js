@@ -7,7 +7,7 @@ const SITES_CONFIG = {
     articleSelector: 'h3 a, h2 a, a[href*="/2026/"], a[href*="/2025/"]',
     titleSelector: 'h1, .article__title, .wp-block-post-title',
     contentSelector: '.article-content, .entry-content, .wp-block-post-content, [data-module="ArticleBody"]',
-    maxAge: 24 // hours
+    maxAge: 72 // 3 días - más permisivo para tests
   },
   'theverge.com': {
     name: 'The Verge',
@@ -55,7 +55,7 @@ const SITES_CONFIG = {
     articleSelector: '.athing .titleline > a, .athing .title a',
     titleSelector: '',
     contentSelector: '',
-    maxAge: 24,
+    maxAge: 168, // 7 días - más permisivo para agregadores
     isAggregator: true
   },
   'huggingface.co': {
@@ -72,7 +72,7 @@ const SITES_CONFIG = {
     articleSelector: 'a[href*="/index/"], h3 a, h2 a, article a',
     titleSelector: 'h1',
     contentSelector: '.prose, .blog-content',
-    maxAge: 24
+    maxAge: 336 // 14 días (más permisivo para blogs que actualizan poco)
   },
   'anthropic.com': {
     name: 'Anthropic News',
@@ -80,7 +80,7 @@ const SITES_CONFIG = {
     articleSelector: 'a[href*="/news/"], h2 a, h3 a, .post-link a',
     titleSelector: 'h1',
     contentSelector: '.prose, .news-content',
-    maxAge: 24
+    maxAge: 336 // 14 días
   },
   'deepmind.google': {
     name: 'DeepMind Blog',
@@ -88,7 +88,7 @@ const SITES_CONFIG = {
     articleSelector: 'article a, h2 a, h3 a, .blog-card a',
     titleSelector: 'h1',
     contentSelector: '.article-content, .blog-content',
-    maxAge: 24
+    maxAge: 336 // 14 días
   },
   'ai.meta.com': {
     name: 'Meta AI Blog',
@@ -162,16 +162,202 @@ class TechScraper {
   }
 
   isRecentArticle(publishedDate, maxAgeHours = 24) {
-    // Siempre retornamos true para tomar todos los artículos de la home
-    // La home page naturalmente muestra las noticias más recientes
-    return true;
+    if (!publishedDate) return true; // Si no podemos determinar fecha, asumimos que es reciente
+    
+    const now = new Date();
+    const maxAge = maxAgeHours * 60 * 60 * 1000; // Convertir horas a ms
+    const articleAge = now - publishedDate;
+    
+    return articleAge <= maxAge;
+  }
+
+  async extractPublishDate(page) {
+    // Selectores comunes para fechas de publicación
+    const dateSelectors = [
+      'time[datetime]',
+      '[datetime]',
+      '.published-date',
+      '.publish-date', 
+      '.post-date',
+      '.article-date',
+      '.date',
+      '.timestamp',
+      '.meta-date',
+      '[data-published]',
+      '[data-date]'
+    ];
+
+    for (const selector of dateSelectors) {
+      try {
+        const element = await page.$(selector);
+        if (element) {
+          // Intentar obtener datetime attribute primero
+          const datetime = await element.getAttribute('datetime');
+          if (datetime) {
+            const date = new Date(datetime);
+            if (!isNaN(date.getTime())) return date;
+          }
+          
+          // Intentar obtener data attributes
+          const dataPublished = await element.getAttribute('data-published') || 
+                               await element.getAttribute('data-date');
+          if (dataPublished) {
+            const date = new Date(dataPublished);
+            if (!isNaN(date.getTime())) return date;
+          }
+          
+          // Intentar parsear el texto del elemento
+          const text = await element.textContent();
+          if (text) {
+            const date = this.parseDateFromText(text.trim());
+            if (date) return date;
+          }
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+
+    // Fallback: buscar fechas en meta tags
+    try {
+      const metaDate = await page.$eval('meta[property="article:published_time"]', 
+        el => el.getAttribute('content'));
+      if (metaDate) {
+        const date = new Date(metaDate);
+        if (!isNaN(date.getTime())) return date;
+      }
+    } catch (e) {}
+
+    try {
+      const metaDate = await page.$eval('meta[name="publishdate"]', 
+        el => el.getAttribute('content'));
+      if (metaDate) {
+        const date = new Date(metaDate);
+        if (!isNaN(date.getTime())) return date;
+      }
+    } catch (e) {}
+
+    return null; // No se pudo determinar fecha
+  }
+
+  parseDateFromText(text) {
+    // Patterns comunes de fechas
+    const patterns = [
+      /(\d{4})-(\d{2})-(\d{2})/,           // 2025-02-21
+      /(\d{2})[\/\-](\d{2})[\/\-](\d{4})/, // 21/02/2025 or 21-02-2025
+      /(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{4})/i, // 21 Feb 2025
+      /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),?\s+(\d{4})/i, // Feb 21, 2025
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const date = new Date(text);
+        if (!isNaN(date.getTime())) return date;
+      }
+    }
+
+    // Intentar parseo directo
+    const date = new Date(text);
+    if (!isNaN(date.getTime()) && date.getFullYear() > 2020) {
+      return date;
+    }
+
+    return null;
+  }
+
+  async extractArticleImage(page) {
+    // Selectores para imágenes principales en orden de prioridad
+    const imageSelectors = [
+      'meta[property="og:image"]', // Open Graph (más confiable)
+      'meta[name="twitter:image"]', // Twitter Card
+      '.featured-image img',
+      '.hero-image img',
+      '.article-image img',
+      '.post-image img',
+      '.wp-post-image',
+      'article img:first-of-type',
+      '.content img:first-of-type',
+      '.entry-content img:first-of-type',
+      'img[class*="featured"]',
+      'img[class*="hero"]',
+      'main img:first-of-type'
+    ];
+
+    for (const selector of imageSelectors) {
+      try {
+        if (selector.includes('meta')) {
+          // Para meta tags, obtener el content
+          const metaContent = await page.getAttribute(selector, 'content');
+          if (metaContent && this.isValidImageUrl(metaContent)) {
+            return {
+              url: metaContent,
+              alt: await page.getAttribute(selector, 'alt') || '',
+              source: 'meta-tag'
+            };
+          }
+        } else {
+          // Para elementos img
+          const imgElement = await page.$(selector);
+          if (imgElement) {
+            const src = await imgElement.getAttribute('src');
+            const alt = await imgElement.getAttribute('alt') || '';
+            
+            if (src && this.isValidImageUrl(src)) {
+              // Convertir URL relativas a absolutas
+              const absoluteUrl = new URL(src, page.url()).href;
+              
+              return {
+                url: absoluteUrl,
+                alt: alt,
+                source: 'img-element'
+              };
+            }
+          }
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+
+    return null; // No se encontró imagen válida
+  }
+
+  isValidImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    
+    // Verificar que sea una URL válida
+    try {
+      new URL(url.startsWith('//') ? `https:${url}` : url);
+    } catch {
+      return false;
+    }
+
+    // Verificar extensiones de imagen
+    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i;
+    return imageExtensions.test(url) || 
+           url.includes('image') || 
+           url.includes('img') ||
+           url.includes('photo');
   }
 
   async scrapeArticleContent(page, url, config) {
+    let publishDate = null;
+    
     try {
       console.log(`  📖 Extrayendo contenido de: ${url}`);
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
       await page.waitForTimeout(2000);
+
+      // Para sitios agregadores, saltar detección de fecha en URLs externas
+      if (!config.isAggregator) {
+        // Detectar fecha de publicación antes de continuar
+        publishDate = await this.extractPublishDate(page);
+        if (publishDate && !this.isRecentArticle(publishDate, config.maxAge || 24)) {
+          console.log(`  ⏰ Artículo demasiado viejo: ${publishDate.toLocaleDateString()}`);
+          return null;
+        }
+      }
 
       // Extraer título
       let title = '';
@@ -185,6 +371,14 @@ class TechScraper {
                   await page.getAttribute('meta[property="og:title"]', 'content').catch(() => '') ||
                   await page.textContent('title').catch(() => '');
         }
+      }
+
+      // Extraer imagen principal del artículo
+      let articleImage = null;
+      try {
+        articleImage = await this.extractArticleImage(page);
+      } catch (e) {
+        // No imagen disponible, continuar sin error
       }
 
       // Extraer contenido
@@ -226,9 +420,9 @@ class TechScraper {
         }
       }
 
-      // Para sitios agregadores como Hacker News, el título es suficiente
+      // Para sitios agregadores como Hacker News, usar el título como contenido
       if (config.isAggregator) {
-        content = `Noticia destacada en ${config.name}`;
+        content = `Trending en ${config.name}: ${title}`;
       }
 
       // Limpiar contenido
@@ -241,6 +435,8 @@ class TechScraper {
           content: content || 'Contenido no disponible',
           url,
           source: config.name,
+          publishedDate: publishDate ? publishDate.toISOString() : null,
+          originalImage: articleImage,
           scrapedAt: new Date().toISOString()
         };
       }

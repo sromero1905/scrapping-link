@@ -45,8 +45,8 @@ git push -u origin main
 - **Name**: `ANTHROPIC_API_KEY`
 - **Secret**: Tu API key de Claude (empieza con `sk-ant-`)
 
-#### `GITHUB_TOKEN`
-- **Name**: `GITHUB_TOKEN` 
+#### `GH_TOKEN`
+- **Name**: `GH_TOKEN` 
 - **Secret**: Tu Personal Access Token (empieza con `ghp_`)
 
 ### ⚠️ **IMPORTANTE**: NO subas el archivo `.env` al repositorio
@@ -169,7 +169,7 @@ Editar `src/generator.js` → `POST_TYPES`
 - Verificar secret en GitHub repo
 - Verificar que tenga créditos en Anthropic
 
-### Error "No GITHUB_TOKEN"  
+### Error "No GH_TOKEN"  
 - Verificar secret en GitHub repo
 - Verificar que token tenga scope "gist"
 
@@ -188,7 +188,7 @@ Editar `src/generator.js` → `POST_TYPES`
 Antes de declarar "producción lista":
 
 - [ ] Repositorio creado y código subido
-- [ ] Secrets configurados (ANTHROPIC_API_KEY + GITHUB_TOKEN) 
+- [ ] Secrets configurados (ANTHROPIC_API_KEY + GH_TOKEN) 
 - [ ] Workflow ejecutado manualmente y funcionando
 - [ ] Gists creados exitosamente  
 - [ ] URLs de Gists accesibles desde móvil

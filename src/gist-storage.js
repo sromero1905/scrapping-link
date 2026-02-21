@@ -7,11 +7,11 @@ class GistStorage {
 
   async initialize() {
     console.log('🔐 Inicializando GitHub Gists...');
-    
+
     try {
-      const token = process.env.GITHUB_TOKEN;
+      const token = process.env.GH_TOKEN;
       if (!token) {
-        throw new Error('Variable de entorno GITHUB_TOKEN no encontrada');
+        throw new Error('Variable de entorno GH_TOKEN no encontrada');
       }
 
       this.octokit = new Octokit({
@@ -21,7 +21,7 @@ class GistStorage {
       // Test the connection
       const { data: user } = await this.octokit.rest.users.getAuthenticated();
       console.log(`✅ Conectado a GitHub como: ${user.login}`);
-      
+
       return true;
     } catch (error) {
       console.error('❌ Error inicializando GitHub:', error.message);
@@ -31,10 +31,10 @@ class GistStorage {
 
   async createGist(title, content, isPublic = false) {
     console.log(`📄 Creando Gist: "${title}"`);
-    
+
     try {
       const filename = title.replace(/[^a-zA-Z0-9\-_\s]/g, '') + '.txt';
-      
+
       const gist = await this.octokit.rest.gists.create({
         description: `LinkedIn Content - ${title}`,
         public: isPublic,
@@ -70,12 +70,12 @@ class GistStorage {
     });
 
     const title = `Posts LinkedIn ${today}`;
-    
+
     // Formatear contenido
     let content = `# 📝 POSTS LINKEDIN - ${today}\n\n`;
     content += `> Generado automáticamente el ${new Date().toLocaleString('es-ES')}\n\n`;
     content += `---\n\n`;
-    
+
     // Índice
     content += `## 📊 RESUMEN\n\n`;
     const typeStats = {};
@@ -83,28 +83,28 @@ class GistStorage {
       const type = post.type || 'general';
       typeStats[type] = (typeStats[type] || 0) + 1;
     });
-    
+
     Object.entries(typeStats).forEach(([type, count]) => {
       content += `- **${type.charAt(0).toUpperCase() + type.slice(1)}**: ${count} posts\n`;
     });
-    
+
     content += `- **TOTAL**: ${posts.length} posts\n\n`;
     content += `---\n\n`;
-    
+
     // Posts individuales
     posts.forEach((post, index) => {
       const postNumber = post.number || (index + 1);
       const postType = post.type || 'general';
       const postSource = post.source || 'Fuente no especificada';
-      
+
       content += `## POST #${postNumber} | ${postType.toUpperCase()}\n\n`;
       content += `**Fuente:** ${postSource}\n\n`;
       content += `${post.content || 'Contenido no disponible'}\n\n`;
-      
+
       if (post.hashtags) {
         content += `${post.hashtags}\n\n`;
       }
-      
+
       content += `---\n\n`;
     });
 
@@ -128,15 +128,15 @@ class GistStorage {
     });
 
     const title = `Resumen Tech-IA ${today}`;
-    
+
     // Convertir a Markdown si no lo está ya
     let content = `# 🔬 RESUMEN TECH-IA - ${today}\n\n`;
     content += `> Análisis automático de las noticias más relevantes del día\n\n`;
     content += `---\n\n`;
-    
+
     // El summary ya viene formateado del generador, solo añadir markdown
     content += summary.replace(/^## /gm, '### ').replace(/^# /gm, '## ');
-    
+
     // Añadir metadata al final
     content += `\n---\n\n`;
     content += `**Generado:** ${new Date().toLocaleString('es-ES')}  \n`;
@@ -147,30 +147,30 @@ class GistStorage {
 
   async saveAllContent(posts, summary) {
     console.log('🚀 Guardando contenido en GitHub Gists...');
-    
+
     try {
       const results = {};
-      
+
       // Guardar posts
       console.log('📝 Creando Gist de posts...');
       results.postsGist = await this.savePostsDocument(posts);
-      
+
       // Guardar resumen tech
       console.log('📊 Creando Gist de resumen...');
       results.summaryGist = await this.saveTechSummary(summary);
-      
+
       console.log('✅ Todo el contenido guardado exitosamente en GitHub Gists');
       console.log(`\n🔗 **ENLACES DIRECTOS:**`);
       console.log(`📝 Posts LinkedIn: ${results.postsGist.url}`);
       console.log(`📊 Resumen Tech: ${results.summaryGist.url}`);
-      
+
       // URLs para leer rápido (raw)
       console.log(`\n📖 **ENLACES DE LECTURA RÁPIDA:**`);
       console.log(`📝 Posts (raw): ${results.postsGist.rawUrl}`);
       console.log(`📊 Resumen (raw): ${results.summaryGist.rawUrl}`);
-      
+
       return results;
-      
+
     } catch (error) {
       console.error('❌ Error guardando en GitHub Gists:', error.message);
       throw error;
@@ -199,13 +199,13 @@ class GistStorage {
 
   async testConnection() {
     console.log('🔧 Probando conexión con GitHub...');
-    
+
     try {
       const { data: user } = await this.octokit.rest.users.getAuthenticated();
       console.log(`✅ Conexión exitosa: ${user.login}`);
       console.log(`📊 Gists públicos: ${user.public_gists}`);
       console.log(`📊 Repositorios públicos: ${user.public_repos}`);
-      
+
       return true;
     } catch (error) {
       console.error('❌ Error de conexión:', error.message);

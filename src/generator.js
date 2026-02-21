@@ -1,4 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
+import ImageFinder from './image-finder.js';
+import ImageEvaluator from './image-evaluator.js';
 
 const WRITING_STYLES = [
   'directo_impactante', 'conversacional_cercano', 'analista_experto',
@@ -21,6 +23,10 @@ class ContentGenerator {
     this.generatedPosts = [];
     this.newsContent = '';
     this.filteredNews = [];
+    
+    // Inicializar módulos de imágenes
+    this.imageFinder = new ImageFinder();
+    this.imageEvaluator = new ImageEvaluator(apiKey);
   }
 
   async filterRelevantContent(articles) {
@@ -179,6 +185,10 @@ Genera los 100 posts ahora:`;
 
       // Mostrar estadísticas
       this.showGenerationStats();
+
+      // Procesar imágenes para posts seleccionados (criterio ultra-exigente)
+      console.log('\n🖼️ Procesando imágenes con criterios ultra-selectivos...');
+      await this.processImagesForPosts(this.generatedPosts);
 
       return this.generatedPosts;
 
@@ -424,6 +434,73 @@ Genera los 100 posts ahora:`;
     }
 
     return trends.slice(0, 3);
+  }
+
+  async processImagesForPosts(posts) {
+    let postsWithImages = 0;
+    let postsEvaluated = 0;
+    
+    for (const post of posts) {
+      // PASO 1: Claude evalúa si el post necesita imagen
+      const needsImage = await this.imageEvaluator.evaluatePostForImage(post);
+      postsEvaluated++;
+      
+      if (!needsImage) {
+        post.finalImage = null;
+        continue;
+      }
+      
+      // PASO 2: Buscar imagen original del artículo relacionado (si existe)
+      let finalImage = null;
+      const relatedArticle = this.findRelatedArticle(post);
+      
+      if (relatedArticle && relatedArticle.originalImage) {
+        console.log(`🎨 Evaluando imagen original para Post #${post.number}...`);
+        const originalEval = await this.imageEvaluator.evaluateOriginalImage(post, relatedArticle.originalImage);
+        
+        if (originalEval.approved) {
+          finalImage = relatedArticle.originalImage;
+          console.log(`✅ Post #${post.number}: Imagen original aprobada (${originalEval.score}/10)`);
+        }
+      }
+      
+      // PASO 3: Si no hay imagen original aprobada, buscar en APIs
+      if (!finalImage) {
+        console.log(`🔍 Buscando imágenes externas para Post #${post.number}...`);
+        
+        const imageOptions = await this.imageFinder.findImageForPost(post.content, post.type, 3);
+        
+        if (imageOptions.length > 0) {
+          const selectionResult = await this.imageEvaluator.evaluateSearchResults(post, imageOptions);
+          
+          if (selectionResult.approved) {
+            finalImage = selectionResult.selectedImage;
+            console.log(`✅ Post #${post.number}: Imagen externa aprobada (${finalImage.provider})`);
+          } else {
+            console.log(`❌ Post #${post.number}: Todas las opciones rechazadas`);
+          }
+        } else {
+          console.log(`⚠️ Post #${post.number}: No se encontraron opciones en APIs`);
+        }
+      }
+      
+      // Asignar resultado final
+      post.finalImage = finalImage;
+      if (finalImage) postsWithImages++;
+    }
+    
+    console.log(`\n📊 Procesamiento de imágenes completado:`);
+    console.log(`   🔍 Posts evaluados: ${postsEvaluated}`);
+    console.log(`   🖼️ Posts con imagen: ${postsWithImages}`);
+    console.log(`   📝 Posts sin imagen: ${postsEvaluated - postsWithImages}`);
+    console.log(`   🎯 Ratio de calidad: ${postsWithImages > 0 ? 'SISTEMA ULTRA-SELECTIVO' : 'CRITERIOS MUY ESTRICTOS'}`);
+  }
+
+  findRelatedArticle(post) {
+    // Intentar encontrar el artículo relacionado basado en la fuente del post
+    // Para esta versión simple, retornamos null
+    // En el futuro se podría mejorar la asociación post-artículo
+    return null;
   }
 
   delay(ms) {

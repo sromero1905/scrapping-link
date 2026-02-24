@@ -1,6 +1,4 @@
 import Anthropic from '@anthropic-ai/sdk';
-import ImageFinder from './image-finder.js';
-import ImageEvaluator from './image-evaluator.js';
 
 const WRITING_STYLES = [
   'directo_impactante', 'conversacional_cercano', 'analista_experto',
@@ -24,9 +22,6 @@ class ContentGenerator {
     this.newsContent = '';
     this.filteredNews = [];
     
-    // Inicializar módulos de imágenes
-    this.imageFinder = new ImageFinder();
-    this.imageEvaluator = new ImageEvaluator(apiKey);
   }
 
   async filterRelevantContent(articles) {
@@ -118,14 +113,14 @@ Responde con un JSON con esta estructura:
       `• ${news.source}: ${news.title}\n  Relevancia: ${news.relevance_reason}\n  Puntos clave: ${news.key_points.join(', ')}\n  URL: ${news.url}`
     ).join('\n\n');
 
-    const generatePrompt = `Eres un experto creador de contenido para LinkedIn en español. Tu tarea es generar 100 posts únicos y atractivos basados en las noticias tech e IA más relevantes de hoy.
+    const generatePrompt = `Eres un experto creador de contenido para LinkedIn en español con una perspectiva equilibrada sobre tecnología. Tu tarea es generar 100 posts únicos y atractivos basados en las noticias tech e IA más relevantes de hoy.
 
 NOTICIAS SELECCIONADAS:
 ${newsForPrompt}
 
 DISTRIBUCIÓN REQUERIDA:
 - 40 posts informativos (datos concretos de las noticias)
-- 25 posts de opinión (postura clara, nada de "por un lado... por otro")
+- 25 posts de opinión (postura clara pero balanceada)
 - 20 posts tipo meme/humor tech (genuinamente graciosos)
 - 15 posts de storytelling/reflexión (narrativa real)
 
@@ -141,13 +136,22 @@ ESTILOS DE ESCRITURA (distribuir entre los 100 posts):
 9. Provocador de debate - preguntas que generen discusión
 10. Optimista inspirador - el lado positivo de los cambios
 
+PERSPECTIVA SOBRE IA Y TECNOLOGÍA:
+- Enfócate en las OPORTUNIDADES y beneficios de la tecnología
+- Presenta la IA como una herramienta que potencia la creatividad humana
+- Evita dramatizar sobre "riesgos existenciales" o "amenazas"
+- Destaca casos de uso prácticos y positivos
+- Muestra entusiasmo por la innovación y el progreso
+- Cuando menciones desafíos, hazlo de forma constructiva y con soluciones
+- La tecnología debe verse como aliada del desarrollo humano
+
 REGLAS DE CALIDAD CRÍTICAS:
 - Cada post debe sentirse humano, no de IA
 - PROHIBIDO empezar con "En el mundo actual..." o frases corporativas genéricas
 - Usar metáforas, analogías, referencias culturales actuales
 - Variar estructura: posts cortos (2-3 líneas), listas, preguntas, narrativos largos
 - Los memes deben usar referencias culturales españolas/latinoamericanas cuando sea relevante
-- Los de opinión deben tener postura clara que genere conversación
+- Los de opinión deben tener postura clara pero no alarmista
 - Mezclar uso de emojis: algunos posts con emojis, otros sin ninguno
 - Hashtags relevantes al final (3-6 hashtags por post)
 
@@ -164,6 +168,7 @@ IMPORTANTE:
 - Los 100 posts deben ser completamente únicos
 - Si una noticia es muy relevante, puedes hacer múltiples posts con ángulos diferentes
 - El objetivo es que alguien lea 5 posts seguidos y quiera seguir leyendo
+- Mantén un tono optimista y constructivo sobre el futuro tecnológico
 
 Genera los 100 posts ahora:`;
 
@@ -186,9 +191,6 @@ Genera los 100 posts ahora:`;
       // Mostrar estadísticas
       this.showGenerationStats();
 
-      // Procesar imágenes para posts seleccionados (criterio ultra-exigente)
-      console.log('\n🖼️ Procesando imágenes con criterios ultra-selectivos...');
-      await this.processImagesForPosts(this.generatedPosts);
 
       return this.generatedPosts;
 
@@ -436,72 +438,7 @@ Genera los 100 posts ahora:`;
     return trends.slice(0, 3);
   }
 
-  async processImagesForPosts(posts) {
-    let postsWithImages = 0;
-    let postsEvaluated = 0;
-    
-    for (const post of posts) {
-      // PASO 1: Claude evalúa si el post necesita imagen
-      const needsImage = await this.imageEvaluator.evaluatePostForImage(post);
-      postsEvaluated++;
-      
-      if (!needsImage) {
-        post.finalImage = null;
-        continue;
-      }
-      
-      // PASO 2: Buscar imagen original del artículo relacionado (si existe)
-      let finalImage = null;
-      const relatedArticle = this.findRelatedArticle(post);
-      
-      if (relatedArticle && relatedArticle.originalImage) {
-        console.log(`🎨 Evaluando imagen original para Post #${post.number}...`);
-        const originalEval = await this.imageEvaluator.evaluateOriginalImage(post, relatedArticle.originalImage);
-        
-        if (originalEval.approved) {
-          finalImage = relatedArticle.originalImage;
-          console.log(`✅ Post #${post.number}: Imagen original aprobada (${originalEval.score}/10)`);
-        }
-      }
-      
-      // PASO 3: Si no hay imagen original aprobada, buscar en APIs
-      if (!finalImage) {
-        console.log(`🔍 Buscando imágenes externas para Post #${post.number}...`);
-        
-        const imageOptions = await this.imageFinder.findImageForPost(post.content, post.type, 3);
-        
-        if (imageOptions.length > 0) {
-          const selectionResult = await this.imageEvaluator.evaluateSearchResults(post, imageOptions);
-          
-          if (selectionResult.approved) {
-            finalImage = selectionResult.selectedImage;
-            console.log(`✅ Post #${post.number}: Imagen externa aprobada (${finalImage.provider})`);
-          } else {
-            console.log(`❌ Post #${post.number}: Todas las opciones rechazadas`);
-          }
-        } else {
-          console.log(`⚠️ Post #${post.number}: No se encontraron opciones en APIs`);
-        }
-      }
-      
-      // Asignar resultado final
-      post.finalImage = finalImage;
-      if (finalImage) postsWithImages++;
-    }
-    
-    console.log(`\n📊 Procesamiento de imágenes completado:`);
-    console.log(`   🔍 Posts evaluados: ${postsEvaluated}`);
-    console.log(`   🖼️ Posts con imagen: ${postsWithImages}`);
-    console.log(`   📝 Posts sin imagen: ${postsEvaluated - postsWithImages}`);
-    console.log(`   🎯 Ratio de calidad: ${postsWithImages > 0 ? 'SISTEMA ULTRA-SELECTIVO' : 'CRITERIOS MUY ESTRICTOS'}`);
-  }
 
-  findRelatedArticle(post) {
-    // Intentar encontrar el artículo relacionado basado en la fuente del post
-    // Para esta versión simple, retornamos null
-    // En el futuro se podría mejorar la asociación post-artículo
-    return null;
-  }
 
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));

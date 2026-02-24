@@ -7,7 +7,7 @@ const SITES_CONFIG = {
     articleSelector: 'h3 a, h2 a, a[href*="/2026/"], a[href*="/2025/"]',
     titleSelector: 'h1, .article__title, .wp-block-post-title',
     contentSelector: '.article-content, .entry-content, .wp-block-post-content, [data-module="ArticleBody"]',
-    maxAge: 72 // 3 días - más permisivo para tests
+    maxAge: 72
   },
   'theverge.com': {
     name: 'The Verge',
@@ -15,7 +15,7 @@ const SITES_CONFIG = {
     articleSelector: 'h2 a, .c-entry-box--compact__title a, article h2 a, .duet--content-cards--content-card h2 a',
     titleSelector: 'h1, .c-page-title',
     contentSelector: '.c-entry-content, .duet--article--article-body',
-    maxAge: 24
+    maxAge: 48
   },
   'wired.com': {
     name: 'Wired',
@@ -23,7 +23,7 @@ const SITES_CONFIG = {
     articleSelector: 'h3 a, .SummaryItemHedLink-cgaOuV, [data-testid="SummaryItemHedLink"], article h3 a, .summary-item a',
     titleSelector: 'h1, .ContentHeaderHed-sGKyoD',
     contentSelector: '.ArticleBodyWrapper, .article-body',
-    maxAge: 24
+    maxAge: 48
   },
   'arstechnica.com': {
     name: 'Ars Technica',
@@ -31,7 +31,7 @@ const SITES_CONFIG = {
     articleSelector: 'h2 a, .listing h4 a, article header h2 a, .article h2 a',
     titleSelector: 'h1, .post-title',
     contentSelector: '.post-content, .article-content, section.post-content',
-    maxAge: 24
+    maxAge: 48
   },
   'technologyreview.com': {
     name: 'MIT Technology Review',
@@ -39,7 +39,7 @@ const SITES_CONFIG = {
     articleSelector: 'a[href*="/2026/"], a[href*="/2025/"], h2 a, h3 a, .story-link a',
     titleSelector: 'h1',
     contentSelector: 'main p, section p, .article__body, .content__body',
-    maxAge: 24
+    maxAge: 48
   },
   'venturebeat.com': {
     name: 'VentureBeat',
@@ -47,7 +47,7 @@ const SITES_CONFIG = {
     articleSelector: '.ArticleListing__title-link, h3 a, .post-title a, article h2 a',
     titleSelector: 'h1',
     contentSelector: 'article p, .article-content, .the-content',
-    maxAge: 24
+    maxAge: 48
   },
   'news.ycombinator.com': {
     name: 'Hacker News',
@@ -55,88 +55,16 @@ const SITES_CONFIG = {
     articleSelector: '.athing .titleline > a, .athing .title a',
     titleSelector: '',
     contentSelector: '',
-    maxAge: 168, // 7 días - más permisivo para agregadores
+    maxAge: 168,
     isAggregator: true
   },
-  'huggingface.co': {
-    name: 'Hugging Face Blog',
-    baseUrl: 'https://huggingface.co/blog',
-    articleSelector: '.mb-2 a[href*="/blog/"], article h2 a, h3 a, .blog-post-link',
+  'zdnet.com': {
+    name: 'ZDNet',
+    baseUrl: 'https://www.zdnet.com',
+    articleSelector: 'h3 a, .c-shortcardFeed__title a, article h2 a',
     titleSelector: 'h1',
-    contentSelector: '.prose, .blog-content',
-    maxAge: 24
-  },
-  'openai.com': {
-    name: 'OpenAI Blog',
-    baseUrl: 'https://openai.com/index/',
-    articleSelector: 'a[href*="/index/"], h3 a, h2 a, article a',
-    titleSelector: 'h1',
-    contentSelector: '.prose, .blog-content',
-    maxAge: 336 // 14 días (más permisivo para blogs que actualizan poco)
-  },
-  'anthropic.com': {
-    name: 'Anthropic News',
-    baseUrl: 'https://www.anthropic.com/news',
-    articleSelector: 'a[href*="/news/"], h2 a, h3 a, .post-link a',
-    titleSelector: 'h1',
-    contentSelector: '.prose, .news-content',
-    maxAge: 336 // 14 días
-  },
-  'deepmind.google': {
-    name: 'DeepMind Blog',
-    baseUrl: 'https://deepmind.google/discover/blog/',
-    articleSelector: 'article a, h2 a, h3 a, .blog-card a',
-    titleSelector: 'h1',
-    contentSelector: '.article-content, .blog-content',
-    maxAge: 336 // 14 días
-  },
-  'ai.meta.com': {
-    name: 'Meta AI Blog',
-    baseUrl: 'https://ai.meta.com/blog',
-    articleSelector: 'a[href*="/blog/"]',
-    titleSelector: 'h1',
-    contentSelector: '.prose, .article-content, main p',
-    maxAge: 24
-  },
-  'stability.ai': {
-    name: 'Stability AI Blog',
-    baseUrl: 'https://stability.ai/news',
-    articleSelector: 'a[href*="/news/"]',
-    titleSelector: 'h1',
-    contentSelector: '.prose, .article-content, main p',
-    maxAge: 24
-  },
-  'mistral.ai': {
-    name: 'Mistral AI Blog',
-    baseUrl: 'https://mistral.ai/news',
-    articleSelector: 'a[href*="/news/"]',
-    titleSelector: 'h1',
-    contentSelector: '.prose, .article-content, main p',
-    maxAge: 24
-  },
-  'cohere.com': {
-    name: 'Cohere Blog',
-    baseUrl: 'https://cohere.com/blog',
-    articleSelector: 'a[href*="/blog/"]',
-    titleSelector: 'h1',
-    contentSelector: '.prose, .article-content, main p',
-    maxAge: 24
-  },
-  'scale.com': {
-    name: 'Scale AI Blog',
-    baseUrl: 'https://scale.com/blog',
-    articleSelector: 'a[href*="/blog/"]',
-    titleSelector: 'h1',
-    contentSelector: '.prose, .article-content, main p',
-    maxAge: 24
-  },
-  'blog.perplexity.ai': {
-    name: 'Perplexity AI Blog',
-    baseUrl: 'https://blog.perplexity.ai',
-    articleSelector: 'a[href*="/blog/"], h2 a, h3 a',
-    titleSelector: 'h1',
-    contentSelector: '.prose, .article-content, main p',
-    maxAge: 24
+    contentSelector: '.c-entry-content, .storyBody',
+    maxAge: 48
   }
 };
 
@@ -266,80 +194,6 @@ class TechScraper {
     return null;
   }
 
-  async extractArticleImage(page) {
-    // Selectores para imágenes principales en orden de prioridad
-    const imageSelectors = [
-      'meta[property="og:image"]', // Open Graph (más confiable)
-      'meta[name="twitter:image"]', // Twitter Card
-      '.featured-image img',
-      '.hero-image img',
-      '.article-image img',
-      '.post-image img',
-      '.wp-post-image',
-      'article img:first-of-type',
-      '.content img:first-of-type',
-      '.entry-content img:first-of-type',
-      'img[class*="featured"]',
-      'img[class*="hero"]',
-      'main img:first-of-type'
-    ];
-
-    for (const selector of imageSelectors) {
-      try {
-        if (selector.includes('meta')) {
-          // Para meta tags, obtener el content
-          const metaContent = await page.getAttribute(selector, 'content');
-          if (metaContent && this.isValidImageUrl(metaContent)) {
-            return {
-              url: metaContent,
-              alt: await page.getAttribute(selector, 'alt') || '',
-              source: 'meta-tag'
-            };
-          }
-        } else {
-          // Para elementos img
-          const imgElement = await page.$(selector);
-          if (imgElement) {
-            const src = await imgElement.getAttribute('src');
-            const alt = await imgElement.getAttribute('alt') || '';
-            
-            if (src && this.isValidImageUrl(src)) {
-              // Convertir URL relativas a absolutas
-              const absoluteUrl = new URL(src, page.url()).href;
-              
-              return {
-                url: absoluteUrl,
-                alt: alt,
-                source: 'img-element'
-              };
-            }
-          }
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-
-    return null; // No se encontró imagen válida
-  }
-
-  isValidImageUrl(url) {
-    if (!url || typeof url !== 'string') return false;
-    
-    // Verificar que sea una URL válida
-    try {
-      new URL(url.startsWith('//') ? `https:${url}` : url);
-    } catch {
-      return false;
-    }
-
-    // Verificar extensiones de imagen
-    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i;
-    return imageExtensions.test(url) || 
-           url.includes('image') || 
-           url.includes('img') ||
-           url.includes('photo');
-  }
 
   async scrapeArticleContent(page, url, config) {
     let publishDate = null;
@@ -373,13 +227,6 @@ class TechScraper {
         }
       }
 
-      // Extraer imagen principal del artículo
-      let articleImage = null;
-      try {
-        articleImage = await this.extractArticleImage(page);
-      } catch (e) {
-        // No imagen disponible, continuar sin error
-      }
 
       // Extraer contenido
       let content = '';
@@ -436,7 +283,6 @@ class TechScraper {
           url,
           source: config.name,
           publishedDate: publishDate ? publishDate.toISOString() : null,
-          originalImage: articleImage,
           scrapedAt: new Date().toISOString()
         };
       }

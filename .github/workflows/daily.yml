@@ -1,9 +1,6 @@
 name: LinkedIn Content Generation
 
 on:
-  schedule:
-    # Ejecutar todos los días a las 10:00 UTC (7:00 AM Argentina)
-    - cron: '0 10 * * *'
   workflow_dispatch: # Permite ejecución manual
     inputs:
       debug:
@@ -154,9 +151,9 @@ jobs:
         
         echo "🧹 Cleanup completed"
 
-  # Job adicional para estadísticas semanales (solo los domingos)
+  # Job adicional para estadísticas semanales (manual)
   weekly-stats:
-    if: github.event.schedule && format('{0}', github.event.schedule) == '0 10 * * 0'
+    if: false # Deshabilitado - solo se ejecuta manualmente
     runs-on: ubuntu-latest
     needs: generate-content
     
